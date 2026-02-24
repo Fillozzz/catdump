@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CatDump! 💥</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --yellow: #ffd166;
+    --pink: #ffb3d1;
+    --blue: #b3d6ff;
+    --green: #b5ead7;
+    --lavender: #c7ceea;
+    --peach: #ffd6b3;
+    --red: #ef476f;
+    --paper: #fffbe6;
+    --white: #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--paper);
+    background-image: radial-gradient(circle, #ffd16640 1.5px, transparent 1.5px);
+    background-size: 18px 18px;
+    font-family: 'Comic Neue', cursive;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--yellow);
+    border-bottom: 4px solid var(--ink);
+    padding: 0.75rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 0 var(--ink);
+  }
+
+  .logo {
+    font-family: 'Bangers', cursive;
+    font-size: 2.8rem;
+    color: var(--ink);
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+
+  .logo span { color: var(--red); }
+
+  .logo-bang {
+    font-family: 'Bangers', cursive;
+    font-size: 1rem;
+    background: var(--red);
+    color: white;
+    padding: 0.15rem 0.5rem;
+    border: 2px solid var(--ink);
+    border-radius: 4px;
+    transform: rotate(-3deg);
+    display: inline-block;
+    box-shadow: 2px 2px 0 var(--ink);
+    white-space: nowrap;
+    align-self: flex-end;
+    margin-bottom: 4px;
+  }
+
+  .cat-count {
+    font-family: 'Bangers', cursive;
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+    color: var(--ink);
+    background: white;
+    border: 2px solid var(--ink);
+    padding: 0.15rem 0.6rem;
+    border-radius: 20px;
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+
+  .upload-btn {
+    margin-left: auto;
+    background: var(--red);
+    color: white;
+    border: 3px solid var(--ink);
+    padding: 0.5rem 1.2rem;
+    font-family: 'Bangers', cursive;
+    font-size: 1.4rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    border-radius: 8px;
+    box-shadow: 4px 4px 0 var(--ink);
+    transition: all 0.1s;
+  }
+
+  .upload-btn:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink); }
+  .upload-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--ink); }
+  .upload-btn:disabled { background: #ccc; cursor: not-allowed; box-shadow: 2px 2px 0 #aaa; transform: none; }
+
+  /* ── CONFIG WARNING ── */
+  .config-warning {
+    background: var(--pink);
+    border-bottom: 3px solid var(--ink);
+    padding: 0.75rem 2rem;
+    font-family: 'Comic Neue', cursive;
+    font-weight: 700;
+    font-size: 0.85rem;
+    line-height: 1.7;
+  }
+
+  .config-warning strong { color: var(--red); }
+  .config-warning code {
+    background: white;
+    border: 1px solid var(--ink);
+    padding: 0.1em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+
+  /* ── UPLOAD OVERLAY ── */
+  .upload-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26,26,26,0.8);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .upload-overlay.active { opacity: 1; pointer-events: all; }
+
+  .upload-box {
+    background: var(--white);
+    border: 4px solid var(--ink);
+    border-radius: 16px;
+    padding: 2rem;
+    width: 460px;
+    max-width: 92vw;
+    box-shadow: 10px 10px 0 var(--ink);
+    position: relative;
+    transform: scale(0.9) rotate(-1deg);
+    transition: transform 0.2s;
+  }
+
+  .upload-overlay.active .upload-box { transform: scale(1) rotate(0deg); }
+
+  .upload-box h2 {
+    font-family: 'Bangers', cursive;
+    font-size: 2rem;
+    letter-spacing: 0.05em;
+    color: var(--ink);
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .upload-box h2 span {
+    font-size: 1rem;
+    background: var(--yellow);
+    border: 2px solid var(--ink);
+    padding: 0.1rem 0.5rem;
+    border-radius: 20px;
+    transform: rotate(2deg);
+    display: inline-block;
+  }
+
+  .drop-zone {
+    border: 3px dashed var(--ink);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    background: var(--paper);
+    transition: background 0.15s, transform 0.1s;
+    margin-bottom: 1rem;
+  }
+
+  .drop-zone:hover, .drop-zone.dragover {
+    background: var(--yellow);
+    transform: scale(1.02);
+  }
+
+  .drop-zone .drop-icon { font-size: 3rem; display: block; margin-bottom: 0.5rem; }
+
+  .drop-zone p {
+    font-family: 'Comic Neue', cursive;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--ink);
+  }
+
+  .drop-zone p em {
+    color: var(--red);
+    font-style: normal;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  #file-input { display: none; }
+
+  .upload-preview {
+    width: 100%;
+    max-height: 150px;
+    object-fit: cover;
+    border: 3px solid var(--ink);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    display: none;
+  }
+
+  .caption-input {
+    width: 100%;
+    border: 3px solid var(--ink);
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    font-family: 'Comic Neue', cursive;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--paper);
+    outline: none;
+    margin-bottom: 1rem;
+    transition: background 0.15s;
+  }
+
+  .caption-input:focus { background: white; }
+  .caption-input::placeholder { color: #aaa; font-weight: 400; }
+
+  .progress-bar-wrap {
+    height: 12px;
+    background: #eee;
+    border: 2px solid var(--ink);
+    border-radius: 20px;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+    display: none;
+  }
+
+  .progress-bar-wrap.visible { display: block; }
+
+  .progress-bar {
+    height: 100%;
+    background: var(--red);
+    width: 0%;
+    transition: width 0.2s;
+    border-radius: 20px;
+  }
+
+  .upload-status {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #666;
+    min-height: 1.2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .btn-row { display: flex; gap: 0.75rem; }
+
+  .btn-primary {
+    flex: 1;
+    background: var(--red);
+    color: white;
+    border: 3px solid var(--ink);
+    border-radius: 8px;
+    padding: 0.65rem;
+    font-family: 'Bangers', cursive;
+    font-size: 1.3rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 var(--ink);
+    transition: all 0.1s;
+  }
+
+  .btn-primary:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--ink); }
+  .btn-primary:disabled { background: #ccc; cursor: not-allowed; box-shadow: 2px 2px 0 #aaa; transform: none; }
+
+  .btn-cancel {
+    background: white;
+    color: var(--ink);
+    border: 3px solid var(--ink);
+    border-radius: 8px;
+    padding: 0.65rem 1.1rem;
+    font-family: 'Bangers', cursive;
+    font-size: 1.3rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 var(--ink);
+    transition: all 0.1s;
+  }
+
+  .btn-cancel:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--ink); }
+
+  .close-overlay {
+    position: absolute;
+    top: 0.75rem; right: 0.75rem;
+    background: var(--yellow);
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    width: 30px; height: 30px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 2px 2px 0 var(--ink);
+    transition: all 0.1s;
+  }
+
+  .close-overlay:hover { transform: translate(-1px,-1px) rotate(-10deg); box-shadow: 3px 3px 0 var(--ink); }
+
+  /* ── GALLERY ── */
+  .gallery-wrap { padding: 1.5rem 2rem 3rem; }
+
+  .date-strip { margin-bottom: 2.5rem; }
+
+  .date-label {
+    font-family: 'Bangers', cursive;
+    font-size: 1.6rem;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+    border-left: 6px solid var(--red);
+    padding-left: 0.6rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .strip-scroll {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ink) var(--yellow);
+  }
+
+  .strip-scroll::-webkit-scrollbar { height: 6px; }
+  .strip-scroll::-webkit-scrollbar-track { background: var(--yellow); border-radius: 3px; }
+  .strip-scroll::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 3px; }
+
+  .cat-card {
+    flex: 0 0 auto;
+    position: relative;
+    cursor: pointer;
+    border: 3px solid var(--ink);
+    border-radius: 10px;
+    overflow: visible;
+    transition: all 0.12s;
+    box-shadow: 5px 5px 0 var(--ink);
+  }
+
+  .cat-card:nth-child(5n+1) { background: var(--green); }
+  .cat-card:nth-child(5n+2) { background: var(--blue); }
+  .cat-card:nth-child(5n+3) { background: var(--pink); }
+  .cat-card:nth-child(5n+4) { background: var(--lavender); }
+  .cat-card:nth-child(5n+5) { background: var(--peach); }
+
+  .cat-card:hover {
+    transform: translate(-3px, -3px) rotate(-1deg);
+    box-shadow: 8px 8px 0 var(--ink);
+  }
+
+  .cat-card img {
+    display: block;
+    height: 190px;
+    width: auto;
+    max-width: 290px;
+    object-fit: cover;
+    border-radius: 7px;
+  }
+
+  .pow-badge {
+    position: absolute;
+    top: -14px; right: -12px;
+    background: var(--yellow);
+    border: 3px solid var(--ink);
+    border-radius: 50%;
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bangers', cursive;
+    font-size: 0.55rem;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    transform: rotate(15deg);
+    z-index: 2;
+    box-shadow: 2px 2px 0 var(--ink);
+    text-align: center;
+    line-height: 1.1;
+  }
+
+  .pow-badge.red { background: var(--red); color: white; }
+  .pow-badge.pink { background: var(--pink); }
+
+  .caption-bubble {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%) scale(0.85);
+    background: white;
+    border: 2.5px solid var(--ink);
+    border-radius: 10px;
+    padding: 0.35rem 0.65rem;
+    font-family: 'Comic Neue', cursive;
+    font-weight: 700;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+    opacity: 0;
+    transition: all 0.15s;
+    box-shadow: 3px 3px 0 var(--ink);
+    z-index: 10;
+  }
+
+  .caption-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -9px; left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--ink);
+  }
+
+  .caption-bubble::before {
+    content: '';
+    position: absolute;
+    bottom: -6px; left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: white;
+    z-index: 1;
+  }
+
+  .cat-card:hover .caption-bubble {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+
+  /* ── LIGHTBOX ── */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(26,26,26,0.92);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 1rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .lightbox.active { opacity: 1; pointer-events: all; }
+
+  .lb-frame {
+    border: 5px solid white;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6), 8px 8px 0 var(--yellow);
+    overflow: hidden;
+    max-width: 88vw;
+    max-height: 76vh;
+  }
+
+  .lightbox img {
+    display: block;
+    max-width: 88vw;
+    max-height: 76vh;
+    object-fit: contain;
+  }
+
+  .lb-caption-bubble {
+    background: white;
+    border: 3px solid var(--ink);
+    border-radius: 12px;
+    padding: 0.5rem 1.2rem;
+    font-family: 'Comic Neue', cursive;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+    max-width: 80vw;
+    text-align: center;
+  }
+
+  .lb-meta {
+    font-family: 'Comic Neue', cursive;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .lightbox-close {
+    position: fixed;
+    top: 1.25rem; right: 1.5rem;
+    background: var(--yellow);
+    border: 3px solid var(--ink);
+    border-radius: 50%;
+    width: 42px; height: 42px;
+    font-family: 'Bangers', cursive;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 3px 3px 0 var(--ink);
+    transition: all 0.1s;
+    z-index: 10;
+  }
+
+  .lightbox-close:hover { transform: translate(-2px,-2px) rotate(-10deg); box-shadow: 5px 5px 0 var(--ink); }
+
+  .lb-arrow {
+    position: fixed;
+    top: 50%; transform: translateY(-50%);
+    background: var(--yellow);
+    border: 3px solid var(--ink);
+    border-radius: 50%;
+    width: 48px; height: 48px;
+    font-family: 'Bangers', cursive;
+    font-size: 1.8rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 4px 4px 0 var(--ink);
+    color: var(--ink);
+    transition: all 0.1s;
+    z-index: 10;
+  }
+
+  .lb-arrow:hover { transform: translateY(-50%) translate(-2px,-2px); box-shadow: 6px 6px 0 var(--ink); }
+  .lb-prev { left: 1.25rem; }
+  .lb-next { right: 1.25rem; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 5rem 2rem;
+  }
+
+  .empty-state .big {
+    font-size: 6rem;
+    display: block;
+    margin-bottom: 1rem;
+    animation: bounce 1s ease infinite;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-14px); }
+  }
+
+  .empty-state h3 {
+    font-family: 'Bangers', cursive;
+    font-size: 2.5rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-state p {
+    font-family: 'Comic Neue', cursive;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #777;
+  }
+
+  /* ── LOADING ── */
+  .loading-indicator {
+    text-align: center;
+    padding: 5rem;
+    font-family: 'Bangers', cursive;
+    font-size: 1.5rem;
+    letter-spacing: 0.1em;
+    color: var(--ink);
+  }
+
+  /* ── SUCCESS TOAST ── */
+  .success-pop {
+    position: fixed;
+    top: 80px; right: 2rem;
+    background: var(--green);
+    border: 3px solid var(--ink);
+    border-radius: 12px;
+    padding: 0.75rem 1.25rem;
+    font-family: 'Bangers', cursive;
+    font-size: 1.2rem;
+    letter-spacing: 0.05em;
+    box-shadow: 5px 5px 0 var(--ink);
+    z-index: 500;
+    transform: translateX(200%);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .success-pop.show { transform: translateX(0); }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════
+     🔥 FIREBASE CONFIG — PASTE YOURS HERE
+════════════════════════════════════════════ -->
+<script>
+  const FIREBASE_CONFIG = {
+    apiKey:            "YOUR_API_KEY",
+    authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId:         "YOUR_PROJECT_ID",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId:             "YOUR_APP_ID"
+    // No storageBucket needed — images stored as base64 in Firestore
+  };
+
+  // Set to true after pasting your config above
+  const FIREBASE_CONFIGURED = false;
+</script>
+<!-- ══════════════════════════════════════════ -->
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<!-- No Storage SDK needed — images live in Firestore as base64 -->
+
+<header>
+  <div class="logo">Cat<span>Dump</span>!</div>
+  <div class="logo-bang">💥 The Shared Cat Archive</div>
+  <span class="cat-count" id="cat-count" style="display:none"></span>
+  <button class="upload-btn" id="open-upload-btn">+ ADD CAT</button>
+</header>
+
+<div class="config-warning" id="config-warning" style="display:none">
+  ⚠️ <strong>Firebase not configured yet!</strong>
+  Open this file in a text editor, paste your credentials into <code>FIREBASE_CONFIG</code>, then set <code>FIREBASE_CONFIGURED = true</code>.
+  Get your config from <strong>Firebase Console → Project Settings → Your apps → Web app</strong>.
+</div>
+
+<!-- Upload Overlay -->
+<div class="upload-overlay" id="upload-overlay">
+  <div class="upload-box">
+    <button class="close-overlay" id="close-upload-btn">✕</button>
+    <h2>Drop a Cat! <span>🐱</span></h2>
+    <img class="upload-preview" id="upload-preview" alt="Preview" />
+    <div class="drop-zone" id="drop-zone">
+      <span class="drop-icon">🙀</span>
+      <p>Drag your cat here, or <em id="browse-link">browse files</em></p>
+    </div>
+    <input type="file" id="file-input" accept="image/*" />
+    <input type="text" class="caption-input" id="caption-input" placeholder="Give your cat a caption..." maxlength="100" />
+    <div class="progress-bar-wrap" id="progress-wrap">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+    <div class="upload-status" id="upload-status"></div>
+    <div class="btn-row">
+      <button class="btn-primary" id="upload-submit-btn" disabled>UPLOAD! 💥</button>
+      <button class="btn-cancel" id="cancel-btn">NOPE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lb-close">✕</button>
+  <button class="lb-arrow lb-prev" id="lb-prev">‹</button>
+  <div class="lb-frame">
+    <img id="lb-img" src="" alt="" />
+  </div>
+  <div class="lb-caption-bubble" id="lb-caption" style="display:none"></div>
+  <div class="lb-meta" id="lb-meta"></div>
+  <button class="lb-arrow lb-next" id="lb-next">›</button>
+</div>
+
+<!-- Success Toast -->
+<div class="success-pop" id="success-pop">😸 Cat uploaded! POW!</div>
+
+<!-- Gallery -->
+<main class="gallery-wrap" id="gallery-wrap">
+  <div class="loading-indicator" id="loading">Loading cats 🐾</div>
+</main>
+
+<script>
+const BADGES      = ['POW!','LOL!','OMG!','AWW!','CUTE!','MEW!','HISS!','PURR!','ZAP!','YES!'];
+const BADGE_CLS   = ['','red','pink','','red','','pink','','red',''];
+
+function getBadge(n) {
+  const i = n % BADGES.length;
+  return { text: BADGES[i], cls: BADGE_CLS[i] };
+}
+
+if (!FIREBASE_CONFIGURED) {
+  document.getElementById('config-warning').style.display = 'block';
+  document.getElementById('loading').textContent = '⚠️ Configure Firebase first!';
+  document.getElementById('open-upload-btn').disabled = true;
+} else {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const db = firebase.firestore();
+
+  let allCats      = [];
+  let currentLbIdx = -1;
+  let selectedFile = null;
+
+  // refs
+  const uploadOverlay = document.getElementById('upload-overlay');
+  const dropZone      = document.getElementById('drop-zone');
+  const fileInput     = document.getElementById('file-input');
+  const uploadPreview = document.getElementById('upload-preview');
+  const captionInput  = document.getElementById('caption-input');
+  const progressWrap  = document.getElementById('progress-wrap');
+  const progressBar   = document.getElementById('progress-bar');
+  const uploadStatus  = document.getElementById('upload-status');
+  const submitBtn     = document.getElementById('upload-submit-btn');
+  const lightbox      = document.getElementById('lightbox');
+  const lbImg         = document.getElementById('lb-img');
+  const lbCaption     = document.getElementById('lb-caption');
+  const lbMeta        = document.getElementById('lb-meta');
+
+  // ── UPLOAD ────────────────────────────────────
+  document.getElementById('open-upload-btn').addEventListener('click', () => uploadOverlay.classList.add('active'));
+
+  function closeUpload() { uploadOverlay.classList.remove('active'); resetForm(); }
+  document.getElementById('close-upload-btn').addEventListener('click', closeUpload);
+  document.getElementById('cancel-btn').addEventListener('click', closeUpload);
+  document.getElementById('browse-link').addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('click', () => fileInput.click());
+
+  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+  function handleFile(file) {
+    if (!file.type.startsWith('image/')) { alert('Cats only! (image files)'); return; }
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+      uploadPreview.src = e.target.result;
+      uploadPreview.style.display = 'block';
+      dropZone.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+    submitBtn.disabled = false;
+    uploadStatus.textContent = `📎 ${file.name} — ready!`;
+  }
+
+  function resetForm() {
+    selectedFile = null; fileInput.value = ''; captionInput.value = '';
+    uploadPreview.style.display = 'none'; uploadPreview.src = '';
+    dropZone.style.display = 'block';
+    progressWrap.classList.remove('visible'); progressBar.style.width = '0%';
+    uploadStatus.textContent = ''; submitBtn.disabled = true;
+  }
+
+  // Compress to max 800px wide, quality 0.7 → keeps images well under 1MB Firestore limit
+  function compressToBase64(file, maxWidth = 800) {
+    return new Promise((resolve, reject) => {
+      const img = new Image(), url = URL.createObjectURL(file);
+      img.onload = () => {
+        const s = Math.min(1, maxWidth / img.width);
+        const c = document.createElement('canvas');
+        c.width  = Math.round(img.width  * s);
+        c.height = Math.round(img.height * s);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        const b64 = c.toDataURL('image/jpeg', 0.7);
+        // Warn if still too big (>900KB base64 ~ ~675KB binary)
+        if (b64.length > 950_000) {
+          reject(new Error('Image too large even after compression. Try a smaller photo.'));
+        } else {
+          resolve(b64);
+        }
+      };
+      img.onerror = () => reject(new Error('Could not read image file.'));
+      img.src = url;
+    });
+  }
+
+  submitBtn.addEventListener('click', async () => {
+    if (!selectedFile) return;
+    submitBtn.disabled = true;
+    uploadStatus.textContent = '⚙️ Compressing…';
+    progressWrap.classList.add('visible');
+    progressBar.style.width = '40%';
+
+    try {
+      const base64 = await compressToBase64(selectedFile);
+      progressBar.style.width = '80%';
+      uploadStatus.textContent = '🚀 Saving to Firestore…';
+
+      await db.collection('cats').add({
+        base64,
+        caption: captionInput.value.trim(),
+        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      progressBar.style.width = '100%';
+      closeUpload();
+      const pop = document.getElementById('success-pop');
+      pop.classList.add('show');
+      setTimeout(() => pop.classList.remove('show'), 3000);
+    } catch (err) {
+      uploadStatus.textContent = '❌ ' + err.message;
+      progressWrap.classList.remove('visible');
+      submitBtn.disabled = false;
+    }
+  });
+
+  // ── GALLERY ───────────────────────────────────
+  function formatDate(ts) {
+    if (!ts) return '🔥 Just Now';
+    const d = ts.toDate();
+    const today = new Date(); today.setHours(0,0,0,0);
+    const yesterday = new Date(today - 864e5);
+    const dDay = new Date(d); dDay.setHours(0,0,0,0);
+    if (dDay.getTime() === today.getTime())     return '🔥 Today';
+    if (dDay.getTime() === yesterday.getTime()) return '⬅️ Yesterday';
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  }
+
+  function renderGallery(cats) {
+    allCats = cats;
+    const countEl = document.getElementById('cat-count');
+    countEl.style.display = cats.length ? '' : 'none';
+    if (cats.length) countEl.textContent = `${cats.length} 🐱`;
+
+    const wrap = document.getElementById('gallery-wrap');
+
+    if (!cats.length) {
+      wrap.innerHTML = `<div class="empty-state">
+        <span class="big">🙀</span>
+        <h3>NO CATS YET!!</h3>
+        <p>Be the first hero to upload a cat.</p>
+      </div>`;
+      return;
+    }
+
+    const groups = {}, order = [];
+    cats.forEach(cat => {
+      const lbl = formatDate(cat.uploadedAt);
+      if (!groups[lbl]) { groups[lbl] = []; order.push(lbl); }
+      groups[lbl].push(cat);
+    });
+
+    wrap.innerHTML = '';
+    let counter = 0;
+
+    order.forEach(lbl => {
+      const strip = document.createElement('div');
+      strip.className = 'date-strip';
+
+      const label = document.createElement('div');
+      label.className = 'date-label';
+      label.textContent = lbl;
+      strip.appendChild(label);
+
+      const scroll = document.createElement('div');
+      scroll.className = 'strip-scroll';
+
+      groups[lbl].forEach(cat => {
+        const card = document.createElement('div');
+        card.className = 'cat-card';
+
+        const img = document.createElement('img');
+        img.src = cat.base64; img.alt = cat.caption || 'cat'; img.loading = 'lazy';
+        card.appendChild(img);
+
+        const badge = getBadge(counter++);
+        const pow = document.createElement('div');
+        pow.className = `pow-badge ${badge.cls}`;
+        pow.textContent = badge.text;
+        card.appendChild(pow);
+
+        if (cat.caption) {
+          const bubble = document.createElement('div');
+          bubble.className = 'caption-bubble';
+          bubble.textContent = cat.caption;
+          card.appendChild(bubble);
+        }
+
+        const idx = allCats.findIndex(c => c.id === cat.id);
+        card.addEventListener('click', () => openLightbox(idx));
+        scroll.appendChild(card);
+      });
+
+      strip.appendChild(scroll);
+      wrap.appendChild(strip);
+    });
+  }
+
+  db.collection('cats').orderBy('uploadedAt', 'desc').onSnapshot(snap => {
+    const el = document.getElementById('loading');
+    if (el) el.remove();
+    renderGallery(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  }, err => {
+    const el = document.getElementById('loading');
+    if (el) el.textContent = '❌ ' + err.message;
+  });
+
+  // ── LIGHTBOX ──────────────────────────────────
+  function openLightbox(idx) {
+    if (idx < 0 || idx >= allCats.length) return;
+    currentLbIdx = idx;
+    const cat = allCats[idx];
+    lbImg.src = cat.base64; lbImg.alt = cat.caption || '';
+    if (cat.caption) { lbCaption.textContent = '💬 ' + cat.caption; lbCaption.style.display = 'block'; }
+    else lbCaption.style.display = 'none';
+    lbMeta.textContent = cat.uploadedAt ? cat.uploadedAt.toDate().toLocaleString() : '';
+    lightbox.classList.add('active');
+  }
+
+  function closeLightbox() { lightbox.classList.remove('active'); }
+
+  document.getElementById('lb-close').addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+  document.getElementById('lb-prev').addEventListener('click', e => { e.stopPropagation(); openLightbox((currentLbIdx + 1) % allCats.length); });
+  document.getElementById('lb-next').addEventListener('click', e => { e.stopPropagation(); openLightbox((currentLbIdx - 1 + allCats.length) % allCats.length); });
+
+  document.addEventListener('keydown', e => {
+    if (!lightbox.classList.contains('active')) return;
+    if (e.key === 'Escape')      closeLightbox();
+    if (e.key === 'ArrowLeft')   openLightbox((currentLbIdx + 1) % allCats.length);
+    if (e.key === 'ArrowRight')  openLightbox((currentLbIdx - 1 + allCats.length) % allCats.length);
+  });
+}
+</script>
+</body>
+</html>

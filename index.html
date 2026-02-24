@@ -316,6 +316,26 @@
 
   .close-overlay:hover { transform: translate(-1px,-1px) rotate(-10deg); box-shadow: 3px 3px 0 var(--ink); }
 
+  /* ── DELETE BUTTON ── */
+  .delete-btn {
+    position: absolute;
+    bottom: 6px; left: 6px;
+    background: var(--red);
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    width: 28px; height: 28px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 2px 2px 0 var(--ink);
+    opacity: 0;
+    transition: all 0.15s;
+    z-index: 5;
+  }
+
+  .cat-card:hover .delete-btn { opacity: 1; }
+  .delete-btn:hover { transform: scale(1.15); box-shadow: 3px 3px 0 var(--ink); }
+
   /* ── GALLERY ── */
   .gallery-wrap { padding: 1.5rem 2rem 3rem; }
 
@@ -605,16 +625,17 @@
      🔥 FIREBASE CONFIG — PASTE YOURS HERE
 ════════════════════════════════════════════ -->
 <script>
-const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyBXyzRn-_BDEX4yLR1X42VVTHtD3sYt_sk",
-  authDomain:        "catdump-2f86a.firebaseapp.com",
-  projectId:         "catdump-2f86a",
-  messagingSenderId: "570315005046",
-  appId:             "1:570315005046:web:0b96515c53536afeca1357"
-};
-const FIREBASE_CONFIGURED = true;
+  const FIREBASE_CONFIG = {
+    apiKey:            "YOUR_API_KEY",
+    authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId:         "YOUR_PROJECT_ID",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId:             "YOUR_APP_ID"
+    // No storageBucket needed — images stored as base64 in Firestore
+  };
 
-
+  // Set to true after pasting your config above
+  const FIREBASE_CONFIGURED = false;
 </script>
 <!-- ══════════════════════════════════════════ -->
 
@@ -878,6 +899,22 @@ if (!FIREBASE_CONFIGURED) {
           bubble.textContent = cat.caption;
           card.appendChild(bubble);
         }
+
+        // Delete button
+        const delBtn = document.createElement('button');
+        delBtn.className = 'delete-btn';
+        delBtn.title = 'Delete this cat';
+        delBtn.textContent = '🗑️';
+        delBtn.addEventListener('click', async e => {
+          e.stopPropagation();
+          if (!confirm('Delete this cat forever? 😿')) return;
+          try {
+            await db.collection('cats').doc(cat.id).delete();
+          } catch (err) {
+            alert('❌ Could not delete: ' + err.message);
+          }
+        });
+        card.appendChild(delBtn);
 
         const idx = allCats.findIndex(c => c.id === cat.id);
         card.addEventListener('click', () => openLightbox(idx));

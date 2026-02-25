@@ -738,7 +738,7 @@ if (!FIREBASE_CONFIGURED) {
   function closeUpload() { uploadOverlay.classList.remove('active'); resetForm(); }
   document.getElementById('close-upload-btn').addEventListener('click', closeUpload);
   document.getElementById('cancel-btn').addEventListener('click', closeUpload);
-  document.getElementById('browse-link').addEventListener('click', () => fileInput.click());
+  document.getElementById('browse-link').addEventListener('click', (e) => { e.stopPropagation(); fileInput.click(); });
   dropZone.addEventListener('click', () => fileInput.click());
 
   dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
@@ -747,16 +747,29 @@ if (!FIREBASE_CONFIGURED) {
     e.preventDefault(); dropZone.classList.remove('dragover');
     if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
   });
-  fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+  // FIX: Listen to both 'change' and 'input' — iOS Safari sometimes only fires 'input'
+  function onFileSelected() { if (fileInput.files[0]) handleFile(fileInput.files[0]); }
+  fileInput.addEventListener('change', onFileSelected);
+  fileInput.addEventListener('input', onFileSelected);
 
   function handleFile(file) {
-    if (!file.type.startsWith('image/')) { alert('Cats only! (image files)'); return; }
+    if (!file.type.startsWith('image/') && !file.name.match(/\.(heic|heif)$/i)) {
+      // iOS HEIC files sometimes have empty or wrong MIME type
+      alert('Cats only! (image files)');
+      return;
+    }
     selectedFile = file;
+    // FIX: Use FileReader for preview instead of createObjectURL
+    // This forces iOS to decode HEIC → a displayable format
     const reader = new FileReader();
     reader.onload = e => {
       uploadPreview.src = e.target.result;
       uploadPreview.style.display = 'block';
       dropZone.style.display = 'none';
+    };
+    reader.onerror = () => {
+      uploadStatus.textContent = '❌ Could not read file';
     };
     reader.readAsDataURL(file);
     submitBtn.disabled = false;
@@ -771,27 +784,32 @@ if (!FIREBASE_CONFIGURED) {
     uploadStatus.textContent = ''; submitBtn.disabled = true;
   }
 
-  // Compress to max 800px wide, quality 0.7 → keeps images well under 1MB Firestore limit
+  // FIX: Compress using FileReader data URL instead of blob URL
+  // iOS Safari doesn't reliably decode HEIC via createObjectURL → Image → canvas
+  // Using readAsDataURL forces the browser to transcode HEIC first
   function compressToBase64(file, maxWidth = 800) {
     return new Promise((resolve, reject) => {
-      const img = new Image(), url = URL.createObjectURL(file);
-      img.onload = () => {
-        const s = Math.min(1, maxWidth / img.width);
-        const c = document.createElement('canvas');
-        c.width  = Math.round(img.width  * s);
-        c.height = Math.round(img.height * s);
-        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-        URL.revokeObjectURL(url);
-        const b64 = c.toDataURL('image/jpeg', 0.7);
-        // Warn if still too big (>900KB base64 ~ ~675KB binary)
-        if (b64.length > 950_000) {
-          reject(new Error('Image too large even after compression. Try a smaller photo.'));
-        } else {
-          resolve(b64);
-        }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const s = Math.min(1, maxWidth / img.width);
+          const c = document.createElement('canvas');
+          c.width  = Math.round(img.width  * s);
+          c.height = Math.round(img.height * s);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          const b64 = c.toDataURL('image/jpeg', 0.7);
+          if (b64.length > 950_000) {
+            reject(new Error('Image too large even after compression. Try a smaller photo.'));
+          } else {
+            resolve(b64);
+          }
+        };
+        img.onerror = () => reject(new Error('Could not decode image. Try a screenshot instead.'));
+        img.src = reader.result;
       };
-      img.onerror = () => reject(new Error('Could not read image file.'));
-      img.src = url;
+      reader.onerror = () => reject(new Error('Could not read file.'));
+      reader.readAsDataURL(file);
     });
   }
 
@@ -803,7 +821,14 @@ if (!FIREBASE_CONFIGURED) {
     progressBar.style.width = '40%';
 
     try {
-      const base64 = await compressToBase64(selectedFile);
+      // FIX: Race against a timeout so iOS doesn't hang silently on unsupported formats
+      const base64 = await Promise.race([
+        compressToBase64(selectedFile),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Compression timed out — try a screenshot instead of a Live Photo.')), 15000)
+        )
+      ]);
+
       progressBar.style.width = '80%';
       uploadStatus.textContent = '🚀 Saving to Firestore…';
 
